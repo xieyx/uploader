@@ -96,18 +96,18 @@
         };
 
         plugin.thumb = function(file, callback, template){
-			//只预览图片类型
-			if(!file.type.match(/^image\//)) {
-				callback(true);
-				return false;
-			}
+            //只预览图片类型
+            if(!file.type.match(/^image\//)) {
+                callback(true);
+                return false;
+            }
             var reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = function(e){
                 var dataURL = e.target.result;
-				var img = new Image();
+                var img = new Image();
                 var exif;
-				img.onload = function() {
+                img.onload = function() {
                     var orientation = exif.Orientation || 1;
                     var imgRotation = 0;
                     var imgRegX = 0;
@@ -179,18 +179,18 @@
                     stage.addChild(bmp);
                     window.setTimeout(function(){
                         callback(false, getAsDataUrl(canvas, plugin.settings.type), template);
-					    destory(canvas, img);
+                        destory(canvas, img);
                     }, 1000/30);
-				};
+                };
                 
                 var base64 = dataURL.replace(/^.*?,/,'');
                 var binary = atob(base64);
                 var binaryData = new BinaryFile(binary);
 
-				exif = EXIF.readFromBinaryFile(binaryData);
+                exif = EXIF.readFromBinaryFile(binaryData);
                 img.src = dataURL;
             }
-		};
+        };
         
         plugin.startUpload = function(file) {
             console.log(file)
@@ -232,33 +232,33 @@
         plugin.onFileUploadError = function(){};
 
         var loadFromBlob = function() {
-			var urlAPI = window.createObjectURL && window ||
+            var urlAPI = window.createObjectURL && window ||
                 window.URL && URL.revokeObjectURL && URL ||
                 window.webkitURL,
-        	createObjectURL = function(){};
-			if(urlAPI) {
-				return urlAPI.createObjectURL.apply(urlAPI, arguments);
-			}
-			return null;
-		},
-		getAsDataUrl = function(canvas, type) {
-			if(type == 'image/jpeg') {
-				return canvas.toDataURL(type, plugin.settings.quality/100);
-			}else{
-				return canvas.toDataURL(type);
-			}
-		},
+            createObjectURL = function(){};
+            if(urlAPI) {
+                return urlAPI.createObjectURL.apply(urlAPI, arguments);
+            }
+            return null;
+        },
+        getAsDataUrl = function(canvas, type) {
+            if(type == 'image/jpeg') {
+                return canvas.toDataURL(type, plugin.settings.quality/100);
+            }else{
+                return canvas.toDataURL(type);
+            }
+        },
         destory = function(canvas, img) {
-				img.onload = null;
+                img.onload = null;
 
-				if(canvas) {
-					canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-					canvas.width = canvas.height = 0;
-					canvas = null;
-				}
-				img.src = plugin.BLANK;
-				img = null;
-		},
+                if(canvas) {
+                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                    canvas.width = canvas.height = 0;
+                    canvas = null;
+                }
+                img.src = plugin.BLANK;
+                img = null;
+        },
         error = function(msg) {
             plugin.settings.error.call($element, msg);
         },
