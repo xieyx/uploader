@@ -57,7 +57,6 @@
                 $uploaderInput.click();
             }).appendTo($uploaderBody);
             $uploaderInput.change(function(e){
-            console.log('addFile');
                 plugin.addFile(e.target.files);
                 /*初始化input*/
                 $uploaderInput.replaceWith( $uploaderInput = $uploaderInput.clone( true ) );
@@ -75,18 +74,18 @@
                 files[i] = plugin.fileMSG(files[i]);
                 $template = $(plugin.settings.template);
                 plugin.fileQueue.push({'file': files[i]});
-                $template.attr('file-id', files[i].id).find('img').attr('src',plugin.BLANK).end().find('.filename').html(files[i].name);
+                $template.attr('file-id', files[i].id).find('img').attr('src',plugin.BLANK).end().find('.filename').html(files[i].name).end().find('.filesize').html(fileSizeFormate(files[i].size, 2));
                 $container.append($template);
-                console.log('makeThumb')
-                plugin.thumb(files[i], function(isError, src, $template) {
+                plugin.thumb(files[i], function(isError, src, n) {
+                    var $template = $container.find('[file-id='+plugin.fileQueue[n].file.id+']');
+                    $template.find('.file-msg').html('').end().find('.file-shadow').hide();
                     if(isError) {
-                        // not image
-                        error('not image!');
+                        // not image, show file type icon
+                        $template.find('.file').addClass('no-preview').end().find('img').attr('src', fileIcon(plugin.fileQueue[n].file.ext));
                     }else{
-                        $template.find('.file-msg').html('').end().find('.file-shadow').hide();
                         $template.find('img').attr('src', src);
                     }
-                }, $template);
+                }, i);
             }
         };
         plugin.fileMSG = function(file) {
@@ -97,16 +96,14 @@
             return file;
         };
 
-        plugin.thumb = function(file, callback, template){
+        plugin.thumb = function(file, callback, n){
             //只预览图片类型
             if(!file.type.match(/^image\//)) {
-                callback(true);
+                callback(true, '', n);
                 return false;
             }
             var img = new Image();
-            var exif = {};
             img.onload = function() {
-                var orientation = exif.Orientation || 1;
                 var imgRotation = 0;
                 var imgRegX = 0;
                 var imgRegY = 0;
@@ -146,7 +143,7 @@
                 bmp.scaleY = imgScale;
                 stage.addChild(bmp);
                 window.setTimeout(function(){
-                    callback(false, getAsDataUrl(canvas, plugin.settings.type), template);
+                    callback(false, getAsDataUrl(canvas, plugin.settings.type), n);
                     destory(canvas, img);
                 }, 1000/30);
             }
@@ -183,7 +180,8 @@
             var $container = plugin.settings.container;
             var $template = $container.find('[file-id='+plugin.fileQueue[0].file.id+']');
             if(e.lengthComputable) {
-                $template.find('.progress').show().end().find('.loaded').css({'width':Math.floor(e.loaded/e.total*100)+'%'});
+                var loaded = Math.floor(e.loaded/e.total*100)+'%';
+                $template.find('.progress').show().end().find('.loaded').css({'width':loaded}).end().find('.file-shadow').show().end().find('.file-msg').html(loaded);
             }
         };
         plugin.onFileBeforeUpload = function(){};
@@ -192,7 +190,9 @@
             if(plugin.fileQueue.length > 0)
                 plugin.startUpload(plugin.fileQueue[0].file);
         };
-        plugin.onFileUploadError = function(){};
+        plugin.onFileUploadError = function(ret){
+            error(ret.status+': '+ret.statusText);
+        };
 
         var loadFromBlob = function() {
             var urlAPI = window.createObjectURL && window ||
@@ -203,6 +203,30 @@
                 return urlAPI.createObjectURL.apply(urlAPI, arguments);
             }
             return null;
+        },
+        fileSizeFormate = function(size, dec) {
+            size = size||0;
+            dec = dec||2;
+            var unit = ["B", "KB", "MB", "GB", "TB", "PB"];
+            var pos = 0;
+            while (size >= 1024) {
+                size /= 1024;
+                pos++;
+            }
+            return size.toFixed(dec)+unit[pos]
+        },
+        fileIcon = function(type) {
+            var typeLimit = [
+                'aep','ai','as','avi','css','doc','eps',
+                'epub','fla','flv','gif','html','indd','jpg',
+                'js','midi','mkv','mov','mp3','mp4','mpg',
+                'ogg','otf','pdf','php','png','psd','rar',
+                'rtf','svg','swc','swf','tif','ttf','txt',
+                'wav','wma','wmv','xls','xml','zip'
+            ];
+            if(typeLimit.indexOf(type) > -1)
+                return 'images/filetype/icon_'+type+'_256.png';
+            return 'images/filetype/icon_blanc_256.png';
         },
         getAsDataUrl = function(canvas, type) {
             if(type == 'image/jpeg') {
