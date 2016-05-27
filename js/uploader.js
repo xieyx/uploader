@@ -57,6 +57,7 @@
                 $uploaderInput.click();
             }).appendTo($uploaderBody);
             $uploaderInput.change(function(e){
+            console.log('addFile');
                 plugin.addFile(e.target.files);
                 /*初始化input*/
                 $uploaderInput.replaceWith( $uploaderInput = $uploaderInput.clone( true ) );
@@ -76,6 +77,7 @@
                 plugin.fileQueue.push({'file': files[i]});
                 $template.attr('file-id', files[i].id).find('img').attr('src',plugin.BLANK).end().find('.filename').html(files[i].name);
                 $container.append($template);
+                console.log('makeThumb')
                 plugin.thumb(files[i], function(isError, src, $template) {
                     if(isError) {
                         // not image
@@ -101,95 +103,56 @@
                 callback(true);
                 return false;
             }
-            var reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(e){
-                var dataURL = e.target.result;
-                var img = new Image();
-                var exif;
-                img.onload = function() {
-                    var orientation = exif.Orientation || 1;
-                    var imgRotation = 0;
-                    var imgRegX = 0;
-                    var imgRegY = 0;
-                    var vertSquashRatio = detectVerticalSquash(img);
-                    var imgWidth = img.width;
-                    var imgHeight = img.height;
-                    var imgScale = 1;
-                    // 根据移动端拍摄角度进行旋转
-                    switch(orientation) {
-                        case 3: 
-                            imgRotation = 180;
-                            imgRegX = imgWidth;
-                            imgRegY = imgHeight * vertSquashRatio;
-                            break;
-                        case 6:
-                            imgRotation = 90;
-                            imgWidth = img.height;
-                            imgHeight = img.width;
-                            imgRegY = imgWidth * vertSquashRatio;
-                            break;
-                        case 8:
-                            imgRotation = 270;
-                            imgWidth = img.height;
-                            imgHeight = img.width;
-                            imgRegX = imgHeight * vertSquashRatio;
-                            break;
-                    }
-                    imgWidth *= vertSquashRatio;
-                    imgHeight *= vertSquashRatio;
-                    var canvas = Q.createDOM("canvas", {width:50,height:100});
-                    // 根据长宽比进行缩放
-                    if(plugin.settings.thumb.width/imgWidth > plugin.settings.thumb.height/imgHeight) {
-                        imgScale = plugin.settings.thumb.width/imgWidth;
-                    }else{
-                        imgScale = plugin.settings.thumb.height/imgHeight;
-                    }
-                    imgWidth *= imgScale;
-                    imgHeight *= imgScale;
-                    
-                    var canvas = Q.createDOM('canvas', {width: plugin.settings.thumb.width, height: plugin.settings.thumb.height});
-                    var context = new Q.CanvasContext({canvas:canvas});
-                    var stage = new Q.Stage({context:context, width: plugin.settings.thumbwidth, height: plugin.settings.thumb.height, update: function(){
-                        frames++;
-                    }});                                                 
-                    timer = new Q.Timer(1000/30);
-                    timer.addListener(stage);
-                    timer.start();
-                   /* var em = new Q.EventManager();
-                    var events = Q.supportTouch ? ["touchend"] : ["mouseup"];*/
-                    // 根据拍摄角度进行偏移，显示图片中间部分
-                    switch(orientation) {
-                        case 6:
-                            imgRegX += (imgHeight-plugin.settings.thumb.height)/imgScale/2;
-                            break;
-                        case 8:
-                            imgRegY += (imgWidth-plugin.settings.thumb.width)/imgScale/2;
-                            break;
-                        default:
-                            imgRegX += (imgWidth-plugin.settings.thumb.width)/imgScale/2;
-                            imgRegY += (imgHeight-plugin.settings.thumb.height)/imgScale/2;
-                    }
-                    var bmp = new Q.Bitmap({image:img, regX: imgRegX, regY: imgRegY});
-                    bmp.rotation = imgRotation;
-                    bmp.x = 0;
-                    bmp.y = 0;
-                    bmp.scaleX = imgScale * vertSquashRatio;
-                    bmp.scaleY = imgScale;
-                    stage.addChild(bmp);
-                    window.setTimeout(function(){
-                        callback(false, getAsDataUrl(canvas, plugin.settings.type), template);
-                        destory(canvas, img);
-                    }, 1000/30);
-                };
+            var img = new Image();
+            var exif = {};
+            img.onload = function() {
+                var orientation = exif.Orientation || 1;
+                var imgRotation = 0;
+                var imgRegX = 0;
+                var imgRegY = 0;
+                var vertSquashRatio = detectVerticalSquash(img);
+                var imgWidth = img.width;
+                var imgHeight = img.height;
+                var imgScale = 1;
+                imgWidth *= vertSquashRatio;
+                imgHeight *= vertSquashRatio;
+                var canvas = Q.createDOM("canvas", {width:50,height:100});
+                // 根据长宽比进行缩放
+                if(plugin.settings.thumb.width/imgWidth > plugin.settings.thumb.height/imgHeight) {
+                    imgScale = plugin.settings.thumb.width/imgWidth;
+                }else{
+                    imgScale = plugin.settings.thumb.height/imgHeight;
+                }
+                imgWidth *= imgScale;
+                imgHeight *= imgScale;
                 
-                var base64 = dataURL.replace(/^.*?,/,'');
-                var binary = atob(base64);
-                var binaryData = new BinaryFile(binary);
-
-                exif = EXIF.readFromBinaryFile(binaryData);
-                img.src = dataURL;
+                var canvas = Q.createDOM('canvas', {width: plugin.settings.thumb.width, height: plugin.settings.thumb.height});
+                var context = new Q.CanvasContext({canvas:canvas});
+                var stage = new Q.Stage({context:context, width: plugin.settings.thumbwidth, height: plugin.settings.thumb.height, update: function(){
+                    frames++;
+                }});                                                 
+                timer = new Q.Timer(1000/30);
+                timer.addListener(stage);
+                timer.start();
+               /* var em = new Q.EventManager();
+                var events = Q.supportTouch ? ["touchend"] : ["mouseup"];*/
+                imgRegX = (imgWidth-plugin.settings.thumb.width)/imgScale/2;
+                imgRegY = (imgHeight-plugin.settings.thumb.height)/imgScale/2;
+                var bmp = new Q.Bitmap({image:img, regX: imgRegX, regY: imgRegY});
+                bmp.rotation = imgRotation;
+                bmp.x = 0;
+                bmp.y = 0;
+                bmp.scaleX = imgScale * vertSquashRatio;
+                bmp.scaleY = imgScale;
+                stage.addChild(bmp);
+                window.setTimeout(function(){
+                    callback(false, getAsDataUrl(canvas, plugin.settings.type), template);
+                    destory(canvas, img);
+                }, 1000/30);
             }
+                
+                var dataURL = loadFromBlob(file);
+                img.src = dataURL;
         };
         
         plugin.startUpload = function(file) {
