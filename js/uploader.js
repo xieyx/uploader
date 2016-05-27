@@ -76,16 +76,15 @@
                 plugin.fileQueue.push({'file': files[i]});
                 $template.attr('file-id', files[i].id).find('img').attr('src',plugin.BLANK).end().find('.filename').html(files[i].name).end().find('.filesize').html(fileSizeFormate(files[i].size, 2));
                 $container.append($template);
-                plugin.thumb(files[i], function(isError, src, n) {
-                    var $template = $container.find('[file-id='+plugin.fileQueue[n].file.id+']');
+                plugin.thumb(files[i], function(isError, src, $template) {
                     $template.find('.file-msg').html('').end().find('.file-shadow').hide();
                     if(isError) {
                         // not image, show file type icon
-                        $template.find('.file').addClass('no-preview').end().find('img').attr('src', fileIcon(plugin.fileQueue[n].file.ext));
+                        $template.find('.file').addClass('no-preview').end().find('img').attr('src', fileIcon(src));
                     }else{
                         $template.find('img').attr('src', src);
                     }
-                }, i);
+                }, $template);
             }
         };
         plugin.fileMSG = function(file) {
@@ -96,10 +95,10 @@
             return file;
         };
 
-        plugin.thumb = function(file, callback, n){
+        plugin.thumb = function(file, callback, $template){
             //只预览图片类型
             if(!file.type.match(/^image\//)) {
-                callback(true, '', n);
+                callback(true, file.ext, $template);
                 return false;
             }
             var img = new Image();
@@ -143,7 +142,7 @@
                 bmp.scaleY = imgScale;
                 stage.addChild(bmp);
                 window.setTimeout(function(){
-                    callback(false, getAsDataUrl(canvas, plugin.settings.type), n);
+                    callback(false, getAsDataUrl(canvas, plugin.settings.type), $template);
                     destory(canvas, img);
                 }, 1000/30);
             }
