@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="HandheldFriendly" content="true" />
+        <meta name="MobileOptimized" content="width" />
+        <meta name="applicable-device" content="mobile"/>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+        <title>uploader demo</title>
+        <meta name="description" content=""/>
+        <meta name="keywords" content=""/>
+        <link rel="stylesheet" href="css/user.css"/>
+    </head>
+    <body>
+        <div class="container">
+            <div class="box">
+                <div class="box-tit">
+                    <h3>上传图片</h3>
+                    <div class="show bg">
+                    <i class="show list"></i><i class="show icon"></i>
+                    </div>
+                </div>
+                <ul class="file-list image-list">
+                    <li>
+                        <span class="checkbox"><input type="checkbox" name="image"></span>
+                        <span class="filename">文件名</span>
+                        <span class="filesize">1.00kb</span>
+                        <p class="progress"><span class="loaded"></span></p>
+                        <p class="file-shadow"></p>
+                        <p class="file-msg">等待上传</p>
+                        <i class="controls stop"></i>
+                    </li>
+                    <li>
+                        <span class="checkbox"><input type="checkbox" name="image"></span>
+                        <span class="filename">文件名</span>
+                        <span class="filesize">1.00kb</span>
+                        <p class="progress"><span class="loaded"></span></p>
+                    </li>
+                </ul>
+                <div class="box-btn">
+                    <input type="checkbox">已选中<span class="selected">0</span>/<span class="total">1</span>
+                    <a href="javascript:;" id="image-upload" class="btn btn-success float-right">开始上传</a>
+                    <a href="javascript:;" class="btn btn-default float-right" id="image-picker">选择文件</a>
+                </div>
+            </div>
+            <div class="box">
+                <div class="box-tit">
+                    <h3>上传文件</h3>
+                    <div class="show bg tap">
+                    <i class="show list"></i><i class="show icon"></i>
+                    </div>
+                </div>
+                <ul class="icon-list">
+                    <li>
+                        <div class="file">
+                            <p class="file-shadow"></p>
+                            <p class="file-msg">30%</p>
+                            <img src="./images/head1.jpg">
+                            <p class="progress"><span class="loaded"></span></p>
+                            <i class="controls stop"></i>
+                        </div>
+                        <span class="filename">文件名</span>
+                    </li>
+                    <li>
+                        <div class="file no-preview">
+                            <p class="file-shadow"></p>
+                            <p class="file-msg">99%</p>
+                            <img src="./images/icon_blanc_256.png">
+                            <p class="progress"><span class="loaded"></span></p>
+                            
+                        </div>
+                        <span class="filename">文件名</span>
+                    </li>
+                </ul>
+                <div class="box-btn">
+                    <a href="javascript:;" id="file-upload" class="btn btn-success float-right">开始上传</a>
+                    <a href="javascript:;" class="btn btn-default float-right" id="file-picker">选择文件</a>
+                </div>
+            </div>
+        </div>
+        <script src="./js/jquery.min.js"></script>
+        <script src="./js/binaryajax.js"></script>
+        <script src="./js/exif.js"></script>
+        <script src="./js/quark.base-1.0.0.min.js"></script>
+        <script src="./js/uploader.js"></script>
+        <script>
+            /**
+             * $(selector).uploader({
+             *     // 预览图大小，若不能预览使用文件类型icon
+             *     thumb: {width: 80, height: 80},
+             *     // 接受的文件类型
+             *     accept: 'image/*',
+             *     // 多文件同时上传
+             *     multiple: false,
+             *     // 上传地址
+             *     url: server,
+             *     // 文件显示模板
+             *     template: html,
+             *     // 存放容器
+             *     container: $(selector),
+             *     // 是否切片
+             *     trunk: false,
+             *     // 切片大小512KB，只有在trunk为true时有效
+             *     trunkSize: 512*1024,
+             *     // 同时上传切片数量
+             *     tread: 3,
+             *     // 上传切片/文件格式 base64/blob/stream
+             *     format: 'base64',
+             *     beforeSend: function(){},
+             *     progress: function(){},
+             *     error: function(){},
+             *     success: function(){}
+             * })
+             */
+            var html = '<li> \
+                        <div class="file"> \
+                            <p class="file-shadow"></p> \
+                            <p class="file-msg">预览中</p> \
+                            <img src=""> \
+                            <p class="progress"><span class="loaded"></span></p> \
+                        </div> \
+                        <span class="filename"></span> \
+                    </li>';
+            $('#file-picker').uploader({
+                thumb: {width: 80, height: 80},
+                accept: 'image/*',
+                url: '',
+                template: html,
+                multiple: true,
+                container: $('.icon-list'),
+                auto: false,
+                uploadButton: $('#file-upload'),
+                trunk: false,
+                trunkSize: 512*1024,
+                server: 'upload.php',
+                beforeSend: function(){},
+                progress: function(){},
+                error: function(msg){alert(msg)},
+                success: function(){}        
+            });
+            html = '<li> \
+                    <span class="checkbox"><input type="checkbox" name="image"></span> \
+                    <span class="filename">文件名</span> \
+                    <span class="filesize">文件大小</span> \
+                    <p class="progress"><span class="loaded"></span></p> \
+            </li>';
+            $('#image-picker').uploader({
+                thumb: false,
+                accept: 'image/*',
+                url: '',
+                template: html,
+                multiple: true,
+                container: $('.image-list'),
+                auto: false,
+                uploadButton: $('#image-upload'),
+                trunk: false,
+                trunkSize: 512*1024,
+                server: 'upload.php',
+                beforeSend: function(){},
+                progress: function(){},
+                error: function(msg){alert(msg)},
+                success: function(){}        
+            });
+        </script>
+    </body>
+</html>

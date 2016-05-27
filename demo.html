@@ -1,0 +1,23 @@
+<!DOCTYPE html>  
+<html xmlns="http://www.w3.org/1999/xhtml">  
+<head>  
+<title></title>  
+<script type="text/javascript">  
+window.onload = function(){
+    var img = new Image();  
+    var canvas = document.getElementById("canvas");  
+    canvas.width = 50;
+    canvas.height = 100;
+    var context = canvas.getContext("2d");  
+    img.onload = function(){
+        context.drawImage(img, (200-50*200/100)/2, 0, 200, 200, 0, 0, 100, 100);
+    }
+    img.src = "./images/head1.jpg";
+
+}
+</script>  
+</head>
+<body>  
+<canvas id="canvas"></canvas>  
+</body>  
+</html> 
