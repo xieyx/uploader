@@ -35,6 +35,8 @@
         plugin.file_id = 0;
         plugin.persentages = {};
         plugin.fileQueue = [];
+        plugin.errorQueue = {};
+        plugin.fileUploading = null;
         plugin.BLANK = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D';
 
         var $element = $(element),
@@ -63,7 +65,10 @@
             });
             var $uploadButton = plugin.settings.uploadButton;
             $uploadButton.click(function(){
-                plugin.startUpload(plugin.fileQueue[0].file);
+                if(plugin.fileQueue.length == 0 || plugin.persentages[plugin.fileQueue[0].file.id].loaded > 0)
+                    return false;
+                plugin.fileUploading = plugin.fileQueue[0].file;
+                plugin.startUpload();
             });
         };
         plugin.addFile = function(files){
@@ -74,7 +79,10 @@
                 files[i] = plugin.fileMSG(files[i]);
                 $template = $(plugin.settings.template);
                 plugin.fileQueue.push({'file': files[i]});
-                $template.attr('file-id', files[i].id).find('img').attr('src',plugin.BLANK).end().find('.filename').html(files[i].name).end().find('.filesize').html(fileSizeFormate(files[i].size, 2));
+                $template.attr('file-id', files[i].id)
+                    .find('img').attr('src',plugin.BLANK).end()
+                    .find('.filename').html(files[i].name).end()
+                    .find('.filesize').html(fileSizeFormate(files[i].size, 2));
                 $container.append($template);
                 plugin.thumb(files[i], function(isError, src, $template) {
                     $template.find('.file-msg').html('').end().find('.file-shadow').hide();
@@ -112,7 +120,6 @@
                 var imgScale = 1;
                 imgWidth *= vertSquashRatio;
                 imgHeight *= vertSquashRatio;
-                var canvas = Q.createDOM("canvas", {width:50,height:100});
                 // 根据长宽比进行缩放
                 if(plugin.settings.thumb.width/imgWidth > plugin.settings.thumb.height/imgHeight) {
                     imgScale = plugin.settings.thumb.width/imgWidth;
@@ -122,25 +129,23 @@
                 imgWidth *= imgScale;
                 imgHeight *= imgScale;
                 
-                var canvas = Q.createDOM('canvas', {width: plugin.settings.thumb.width, height: plugin.settings.thumb.height});
-                var context = new Q.CanvasContext({canvas:canvas});
-                var stage = new Q.Stage({context:context, width: plugin.settings.thumbwidth, height: plugin.settings.thumb.height, update: function(){
+                var canvas = Quark.createDOM('canvas', {width: plugin.settings.thumb.width, height: plugin.settings.thumb.height});
+                var context = new Quark.CanvasContext({canvas:canvas});
+                var stage = new Quark.Stage({context:context, width: plugin.settings.thumbwidth, height: plugin.settings.thumb.height, update: function(){
                     frames++;
-                }});                                                 
-                timer = new Q.Timer(1000/30);
-                timer.addListener(stage);
-                timer.start();
-               /* var em = new Q.EventManager();
-                var events = Q.supportTouch ? ["touchend"] : ["mouseup"];*/
+                }});
                 imgRegX = (imgWidth-plugin.settings.thumb.width)/imgScale/2;
                 imgRegY = (imgHeight-plugin.settings.thumb.height)/imgScale/2;
-                var bmp = new Q.Bitmap({image:img, regX: imgRegX, regY: imgRegY});
+                var bmp = new Quark.Bitmap({image:img, regX: imgRegX, regY: imgRegY});
                 bmp.rotation = imgRotation;
                 bmp.x = 0;
                 bmp.y = 0;
                 bmp.scaleX = imgScale * vertSquashRatio;
                 bmp.scaleY = imgScale;
                 stage.addChild(bmp);
+                var timer = new Quark.Timer(1000/30);
+                timer.addListener(stage);
+                timer.start();
                 window.setTimeout(function(){
                     callback(false, getAsDataUrl(canvas, plugin.settings.type), $template);
                     destory(canvas, img);
@@ -151,11 +156,11 @@
                 img.src = dataURL;
         };
         
-        plugin.startUpload = function(file) {
-            console.log(file)
+        plugin.startUpload = function() {
             var formData = new FormData();
-            formData.append('file', file);
-            $.ajax({
+            formData.append('file', plugin.fileUploading);
+            plugin.controls();
+            plugin.fileUploading.ctrl = $.ajax({
                 url: plugin.settings.server,
                 data: formData,
                 processData: false,
@@ -174,22 +179,62 @@
                 error: plugin.onFileUploadError
             })
         };
+        plugin.controls = function(){
+            var $container = plugin.settings.container;
+            var $template = $container.find('[file-id='+plugin.fileUploading.id+']');
+            // 续传
+            if($template.find('.controls').length) return false;
+            var $controls = $('<i/>');
+            $controls.addClass('controls stop').click(function(){
+                if($(this).hasClass('stop')) {
+                    $(this).removeClass('stop').addClass('start');
+                    //暂停
+                    plugin.fileQueue[0].file.ctrl.abort();
+                }else{
+                    $(this).removeClass('start').addClass('stop');
+                    $template.removeClass('error');
+                    plugin.fileUploading = plugin.errorQueue[$template.attr('file-id')];
+                    //续传
+                    plugin.startUpload();
+                }
+            });
+            $template.find('.file').append($controls);
+        };
         
         plugin.onFileProgress = function(e) {
             var $container = plugin.settings.container;
-            var $template = $container.find('[file-id='+plugin.fileQueue[0].file.id+']');
+            var $template = $container.find('[file-id='+plugin.fileUploading.id+']');
             if(e.lengthComputable) {
                 var loaded = Math.floor(e.loaded/e.total*100)+'%';
-                $template.find('.progress').show().end().find('.loaded').css({'width':loaded}).end().find('.file-shadow').show().end().find('.file-msg').html(loaded);
+                plugin.persentages[plugin.fileUploading.id].loaded = e.loaded;
+                $template.find('.progress').show().end()
+                    .find('.loaded').css({'width':loaded}).end()
+                    .find('.file-shadow').show().end()
+                    .find('.file-msg').html(loaded);
             }
         };
         plugin.onFileBeforeUpload = function(){};
         plugin.onFileUploadComplete = function(){
-            plugin.fileQueue.splice(0,1);
-            if(plugin.fileQueue.length > 0)
-                plugin.startUpload(plugin.fileQueue[0].file);
+            console.log('complete')
+            var $container = plugin.settings.container;
+            var $template = $container.find('[file-id='+plugin.fileUploading.id+']');
+            $template.find('.stop').remove();
+            if(plugin.errorQueue[plugin.fileUploading.id] == null)
+                plugin.fileQueue.splice(0,1);
+            if(plugin.fileQueue.length > 0) {
+                plugin.fileUploading = plugin.fileQueue[0].file;
+                plugin.startUpload();
+            }
         };
         plugin.onFileUploadError = function(ret){
+            var $container = plugin.settings.container;
+            var $template = $container.find('[file-id='+plugin.fileUploading.id+']');
+            $template.addClass('error')
+                .find('.controls').removeClass('stop').addClass('start').end()
+                .find('.file-msg').html('Error');
+            plugin.errorQueue[plugin.fileUploading.id] = plugin.fileUploading;
+            plugin.fileQueue.splice(0,1);
+            console.log('error');
             error(ret.status+': '+ret.statusText);
         };
 

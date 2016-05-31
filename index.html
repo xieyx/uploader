@@ -3,8 +3,6 @@
     <head>
         <meta charset="utf-8"/>
         <meta name="HandheldFriendly" content="true" />
-        <meta name="MobileOptimized" content="width" />
-        <meta name="applicable-device" content="mobile"/>
         <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
         <title>uploader demo</title>
         <meta name="description" content=""/>
@@ -137,10 +135,14 @@
                 success: function(){}        
             });
             html = '<li> \
+                    <div class="file"> \
+                    <p class="file-shadow"></p> \
+                    <p class="file-msg"></p> \
                     <span class="checkbox"><input type="checkbox" name="image"></span> \
                     <span class="filename">文件名</span> \
                     <span class="filesize">文件大小</span> \
                     <p class="progress"><span class="loaded"></span></p> \
+                    </div> \
             </li>';
             $('#file-picker').uploader({
                 thumb: false,

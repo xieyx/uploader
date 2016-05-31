@@ -113,7 +113,7 @@ h3 {float:left;}
     text-align: center;
     margin: 10px 20px;
 }
-.file {
+.icon-list .file {
     position: relative;
     width: 80px;
     height: 80px;
@@ -169,7 +169,8 @@ h3 {float:left;}
 .controls.stop:hover {
     background-position: -54px -52px;
 }
-
+.error .file-msg {color: red;}
+.error .loaded {background: red;}
 /* select */
 .select {
     display:block;
