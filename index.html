@@ -95,9 +95,9 @@
              *     // 存放容器
              *     container: $(selector),
              *     // 是否切片
-             *     trunk: false,
+             *     chunk: false,
              *     // 切片大小512KB，只有在trunk为true时有效
-             *     trunkSize: 512*1024,
+             *     chunkSize: 512*1024,
              *     // 同时上传切片数量
              *     tread: 3,
              *     // 上传切片/文件格式 base64/blob/stream
@@ -126,8 +126,8 @@
                 container: $('.icon-list'),
                 auto: false,
                 uploadButton: $('#image-upload'),
-                trunk: false,
-                trunkSize: 512*1024,
+                chunk: false,
+                chunkSize: 512*1024,
                 server: 'upload.php',
                 beforeSend: function(){},
                 progress: function(){},
@@ -153,9 +153,9 @@
                 container: $('.file-list'),
                 auto: false,
                 uploadButton: $('#file-upload'),
-                trunk: false,
-                trunkSize: 512*1024,
-                server: 'upload.php',
+                chunk: true,
+                chunkSize: 512*1024,
+                server: 'chunk.php',
                 beforeSend: function(){},
                 progress: function(){},
                 error: function(msg){alert(msg)},

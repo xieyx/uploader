@@ -37,6 +37,7 @@
         plugin.fileQueue = [];
         plugin.errorQueue = {};
         plugin.fileUploading = null;
+        plugin.waitThread = {};
         plugin.BLANK = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D';
 
         var $element = $(element),
@@ -68,7 +69,10 @@
                 if(plugin.fileQueue.length == 0 || plugin.persentages[plugin.fileQueue[0].file.id].loaded > 0)
                     return false;
                 plugin.fileUploading = plugin.fileQueue[0].file;
-                plugin.startUpload();
+                if(!plugin.settings.chunk)
+                    plugin.startUpload();
+                else
+                    plugin.sendByChunk();
             });
         };
         plugin.addFile = function(files){
@@ -102,7 +106,18 @@
             plugin.persentages[file.id] = {'total':file.size, 'loaded':0}
             return file;
         };
-
+        // 分片
+        plugin.chunk = function(file, callback) {
+            const SIZE = file.size;
+            var start = plugin.waitThread.start || 0;
+            var end = plugin.waitThread.end || plugin.settings.chunkSize;
+            if(start < SIZE) {
+                callback(file.slice(start, end), start/plugin.settings.chunkSize);
+                plugin.fileUploading.loaded = plugin.fileUploading.loaded ? plugin.fileUploading.loaded+1 : 1;
+                plugin.waitThread.start = end;
+                plugin.waitThread.end = end+plugin.settings.chunkSize;
+            }
+        };
         plugin.thumb = function(file, callback, $template){
             //只预览图片类型
             if(!file.type.match(/^image\//)) {
@@ -155,7 +170,67 @@
                 var dataURL = loadFromBlob(file);
                 img.src = dataURL;
         };
-        
+        plugin.sendByChunk = function() {
+            if(plugin.fileQueue.length == 0)
+                return;
+            var i;
+            plugin.fileUploading = plugin.fileQueue[0].file;
+            plugin.fileQueue.splice(0, 1);
+            plugin.waitThread = {};
+            plugin.fileUploading.total = Math.ceil(plugin.fileUploading.size/plugin.settings.chunkSize);
+            for(i=0; i<plugin.settings.tread; i++) {
+                plugin.chunk(plugin.fileUploading, plugin.chunkCallback);
+            }
+        };
+        plugin.startUploadByChunk = function(formData) {
+            $.ajax({
+                url: plugin.settings.server,
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'JSON',
+                type: 'POST',
+                beforeSend: plugin.onFileBeforeUpload,
+                success: plugin.onChunkUploadSuccess,
+                error: plugin.onChunkUploadError
+            }) 
+        };
+        plugin.chunkCallback = function(file, index) {
+            var formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', plugin.fileUploading.name);
+            formData.append('index', index);
+            formData.append('total', plugin.fileUploading.total);
+            formData.append('ext', plugin.fileUploading.ext);
+            plugin.startUploadByChunk(formData);
+        };
+        plugin.onChunkUploadSuccess = function(ret) {
+            var $container = plugin.settings.container;
+            var $template = $container.find('[file-id='+plugin.fileUploading.id+']');
+            var loaded = '100%';
+            if(ret.type != 'complete') {
+                // 下一分片
+                plugin.persentages[plugin.fileUploading.id].loaded += plugin.settings.chunkSize;
+                loaded = Math.floor(plugin.persentages[plugin.fileUploading.id].loaded/plugin.persentages[plugin.fileUploading.id].total*100)+'%';
+                $template.find('.progress').show().end()
+                    .find('.loaded').css({'width':loaded}).end()
+                    .find('.file-shadow').show().end()
+                    .find('.file-msg').html(loaded);
+                plugin.chunk(plugin.fileUploading, plugin.chunkCallback);
+            }else{
+                // 下一文件
+                plugin.persentages[plugin.fileUploading.id].loaded = plugin.persentages[plugin.fileUploading.id].total;
+                $template.find('.progress').show().end()
+                    .find('.loaded').css({'width':loaded}).end()
+                    .find('.file-shadow').show().end()
+                    .find('.file-msg').html(loaded);
+               plugin.sendByChunk();
+            }
+        };
+        plugin.onChunkUploadError = function(ret) {
+            // 自动重传
+            console.log(ret);
+        };
         plugin.startUpload = function() {
             var formData = new FormData();
             formData.append('file', plugin.fileUploading);
@@ -214,13 +289,17 @@
             }
         };
         plugin.onFileBeforeUpload = function(){};
-        plugin.onFileUploadComplete = function(){
+        plugin.onFileUploadComplete = function(ret){
             console.log('complete')
             var $container = plugin.settings.container;
             var $template = $container.find('[file-id='+plugin.fileUploading.id+']');
             $template.find('.stop').remove();
             if(plugin.errorQueue[plugin.fileUploading.id] == null)
                 plugin.fileQueue.splice(0,1);
+            ret = ret.responseJSON || {};
+            if(ret.status === false) {
+                $template.addClass('error').find('.file-msg').html(ret.info);
+            }
             if(plugin.fileQueue.length > 0) {
                 plugin.fileUploading = plugin.fileQueue[0].file;
                 plugin.startUpload();
