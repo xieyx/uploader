@@ -144,31 +144,22 @@
                 imgWidth *= imgScale;
                 imgHeight *= imgScale;
                 
-                var canvas = Quark.createDOM('canvas', {width: plugin.settings.thumb.width, height: plugin.settings.thumb.height});
-                var context = new Quark.CanvasContext({canvas:canvas});
-                var stage = new Quark.Stage({context:context, width: plugin.settings.thumbwidth, height: plugin.settings.thumb.height, update: function(){
-                    frames++;
-                }});
+                var canvas = document.createElement('canvas');
+                canvas.width = plugin.settings.thumb.width;
+                canvas.height = plugin.settings.thumb.height;
+                var context = canvas.getContext('2d');
                 imgRegX = (imgWidth-plugin.settings.thumb.width)/imgScale/2;
                 imgRegY = (imgHeight-plugin.settings.thumb.height)/imgScale/2;
-                var bmp = new Quark.Bitmap({image:img, regX: imgRegX, regY: imgRegY});
-                bmp.rotation = imgRotation;
-                bmp.x = 0;
-                bmp.y = 0;
-                bmp.scaleX = imgScale * vertSquashRatio;
-                bmp.scaleY = imgScale;
-                stage.addChild(bmp);
-                var timer = new Quark.Timer(1000/30);
-                timer.addListener(stage);
-                timer.start();
-                window.setTimeout(function(){
-                    callback(false, getAsDataUrl(canvas, plugin.settings.type), $template);
-                    destory(canvas, img);
-                }, 1000/30);
+                if(imgScale*vertSquashRatio != 1 || imgScale != 1)
+                    context.scale(imgScale*vertSquashRatio, imgScale);
+                if(imgRegX != 0 || imgRegY != 0)
+                    context.translate(-imgRegX, -imgRegY);
+                context.drawImage(img, 0, 0, img.width, img.height, 0, 0, img.width, img.height);
+                callback(false, getAsDataUrl(canvas, plugin.settings.type), $template);
             }
                 
-                var dataURL = loadFromBlob(file);
-                img.src = dataURL;
+            var dataURL = loadFromBlob(file);
+            img.src = dataURL;
         };
         plugin.sendByChunk = function() {
             if(plugin.fileQueue.length == 0)
